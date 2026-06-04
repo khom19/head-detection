@@ -1,0 +1,14 @@
+# Head Detection — The-Beat
+# Python 3.12+
+
+# Core
+ultralytics>=8.3.0
+torch>=2.6.0
+torchvision>=0.21.0
+
+# Image processing
+opencv-python>=4.13.0
+
+# Utilities
+numpy>=1.26.0
+PyYAML>=6.0

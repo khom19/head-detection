@@ -1,0 +1,33 @@
+# Dataset & Media
+data/*
+train_vid/*
+dataset/*
+
+# Keep folder structure
+!data/.gitkeep
+!train_vid/.gitkeep
+!dataset/.gitkeep
+
+# Model weights
+*.pt
+*.onnx
+*.hef
+
+# Python
+__pycache__/
+*.py[cod]
+*.pyo
+.env
+venv/
+env/
+
+# Training runs
+model/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# IDE
+.vscode/
+.idea/

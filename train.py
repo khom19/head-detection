@@ -23,7 +23,7 @@ BATCH        = 16
 VAL_SPLIT    = 0.2          # 20% for validation
 
 # frames that labeled
-LABELED_FRAMES = list(range(0, 1021, 30))  # 0, 30, 60, ... 1020
+LABELED_FRAMES = list(range(0, 2041, 30))  # 0, 30, 60, ... 1020
 
 # ========================================
 # STEP 1: Extract frames from video
@@ -168,12 +168,14 @@ def train(yaml_path):
         warmup_epochs = 5,
 
         # Augmentation
-        hsv_h   = 0.0,
-        hsv_s   = 0.0,
-        hsv_v   = 0.4, 
+        hsv_h   = 0.3,
+        hsv_s   = 0.5,
+        hsv_v   = 0.6, 
         fliplr  = 0.5,
         mosaic  = 1.0,
-        degrees = 0.0,   
+        degrees = 0.0,
+        erasing = 0.0,
+        auto_augment = "randaugment"
     )
 
     print(f"\n✅ Training complete!")
@@ -188,7 +190,7 @@ def train(yaml_path):
 
 if __name__ == "__main__":
     print("=" * 50)
-    print("  Head Detection Training — The-Beat")
+    print("  Head Detection Training")
     print("=" * 50)
 
     # ติดตั้ง dependency

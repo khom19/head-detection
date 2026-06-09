@@ -17,13 +17,13 @@ CVAT_LABELS  = r"data/obj_train_data"
 OUTPUT_DIR   = r"dataset"            
 
 MODEL_SIZE   = "yolo11s" 
-EPOCHS       = 150
+EPOCHS       = 200
 IMGSZ        = 640
 BATCH        = 16      
 VAL_SPLIT    = 0.2          # 20% for validation
 
 # frames that labeled
-LABELED_FRAMES = list(range(0, 2041, 30))  # 0, 30, 60, ... 1020
+LABELED_FRAMES = list(range(0, 2671, 30))  # 0, 30, 60, ... 1020
 
 # ========================================
 # STEP 1: Extract frames from video
@@ -165,12 +165,13 @@ def train(yaml_path):
         name    = "head_detection_v1",
         project = str(Path(OUTPUT_DIR) / "model"),
         lr0           = 0.01,
-        warmup_epochs = 5,
+        warmup_epochs = 10,
+        close_mosaic = 20,
 
         # Augmentation
-        hsv_h   = 0.3,
+        hsv_h   = 0.5,
         hsv_s   = 0.5,
-        hsv_v   = 0.6, 
+        hsv_v   = 0.0,
         fliplr  = 0.5,
         mosaic  = 1.0,
         degrees = 0.0,

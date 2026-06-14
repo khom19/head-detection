@@ -12,18 +12,18 @@ from pathlib import Path
 # CONFIG
 # ========================================
 
-VIDEO_PATH   = r"train_vid/full_vid.mp4"  
-CVAT_LABELS  = r"data/obj_train_data"    
+VIDEO_PATH   = r"train_vid/full_vid.mp4"
+CVAT_LABELS  = r"data/merge_train_data"    
 OUTPUT_DIR   = r"dataset"            
 
-MODEL_SIZE   = "yolo11s" 
-EPOCHS       = 200
+MODEL_SIZE   = "head-detection" 
+EPOCHS       = 100
 IMGSZ        = 640
 BATCH        = 16      
 VAL_SPLIT    = 0.2          # 20% for validation
 
 # frames that labeled
-LABELED_FRAMES = list(range(0, 2671, 30))  # 0, 30, 60, ... 1020
+LABELED_FRAMES = list(range(0, 3301, 30))  # 0, 30, 60, ... 1020
 
 # ========================================
 # STEP 1: Extract frames from video
@@ -57,14 +57,14 @@ def extract_frames():
 
 
 # ========================================
-# STEP 2: Create Dataset structure
+# STEP 2a: Create Dataset structure
 # ========================================
 
 def build_dataset():
     print(f"\n[2/4] Building dataset structure...")
 
     raw_frames = Path(OUTPUT_DIR) / "raw_frames"
-    dataset    = Path(OUTPUT_DIR) / "dataset"
+    dataset    = Path(OUTPUT_DIR)
     labels_src = Path(CVAT_LABELS)
 
     # create folder
@@ -114,6 +114,87 @@ def build_dataset():
     print(f"   ✅ Dataset ready → {dataset}")
     return dataset
 
+# ========================================
+# STEP 2b: Build dataset directly from CVAT export
+# (used when VIDEO_PATH not found)
+# ========================================
+
+def build_dataset_from_cvat():
+    """
+    Build dataset directly from CVAT export folder.
+    CVAT YOLO 1.1 export puts images and .txt labels in the same folder:
+        obj_train_data/
+        ├── frame_000000.jpg
+        ├── frame_000000.txt
+        ├── frame_000030.jpg
+        ├── frame_000030.txt
+        └── ...
+    Pairs files by stem name, then splits into train/val.
+    """
+    print(f"\n[2/4] Building dataset from CVAT export...")
+
+    src     = Path(CVAT_LABELS)
+    dataset = Path(OUTPUT_DIR)
+
+    if not src.exists():
+        print(f"   ❌ CVAT folder not found: {src}")
+        return None
+
+    for split in ["train", "val"]:
+        (dataset / "images" / split).mkdir(parents=True, exist_ok=True)
+        (dataset / "labels" / split).mkdir(parents=True, exist_ok=True)
+
+    allowed_stems = {f"frame_{n:06d}" for n in LABELED_FRAMES}
+
+    # Find images that are (1) in LABELED_FRAMES and (2) have a matching .txt
+    image_exts = {".jpg", ".jpeg", ".png"}
+    available  = []
+    skipped_interp = 0
+
+    for img_path in sorted(src.iterdir()):
+        if img_path.suffix.lower() not in image_exts:
+            continue
+
+        # Skip frames not in LABELED_FRAMES (interpolated by CVAT tracker)
+        if img_path.stem not in allowed_stems:
+            skipped_interp += 1
+            continue
+
+        lbl_path = img_path.with_suffix(".txt")
+        if lbl_path.exists():
+            available.append(img_path.stem)
+        else:
+            print(f"   ⚠️  No label for: {img_path.name} — skipped")
+
+    print(f"   Found {len(available)} manually reviewed frames")
+    if skipped_interp:
+        print(f"   Skipped {skipped_interp} interpolated frames (not in LABELED_FRAMES)")
+
+    if not available:
+        print("   ❌ No paired files found — check CVAT_LABELS path")
+        return None
+
+    # Split train/val
+    random.seed(42)
+    random.shuffle(available)
+    split_idx = int(len(available) * (1 - VAL_SPLIT))
+    train_set = available[:split_idx]
+    val_set   = available[split_idx:]
+
+    print(f"   Train: {len(train_set)} | Val: {len(val_set)}")
+
+    for stem in train_set:
+        img_path = next(src / (stem + ext) for ext in image_exts if (src / (stem + ext)).exists())
+        shutil.copy(img_path,            dataset / "images" / "train" / img_path.name)
+        shutil.copy(src / f"{stem}.txt", dataset / "labels" / "train" / f"{stem}.txt")
+
+    for stem in val_set:
+        img_path = next(src / (stem + ext) for ext in image_exts if (src / (stem + ext)).exists())
+        shutil.copy(img_path,            dataset / "images" / "val" / img_path.name)
+        shutil.copy(src / f"{stem}.txt", dataset / "labels" / "val" / f"{stem}.txt")
+
+    print(f"   ✅ Dataset ready → {dataset}")
+    return dataset
 
 # ========================================
 # STEP 3: Create dataset.yaml
@@ -164,14 +245,14 @@ def train(yaml_path):
         batch   = BATCH,
         name    = "head_detection_v1",
         project = str(Path(OUTPUT_DIR) / "model"),
-        lr0           = 0.01,
+        lr0     = 0.01,
         warmup_epochs = 10,
         close_mosaic = 20,
 
         # Augmentation
-        hsv_h   = 0.5,
-        hsv_s   = 0.5,
-        hsv_v   = 0.0,
+        hsv_h   = 0.0,
+        hsv_s   = 0.0,
+        hsv_v   = 0.4,
         fliplr  = 0.5,
         mosaic  = 1.0,
         degrees = 0.0,
@@ -194,13 +275,22 @@ if __name__ == "__main__":
     print("  Head Detection Training")
     print("=" * 50)
 
-    # ติดตั้ง dependency
     os.system("pip install ultralytics -q")
+    
+    if Path(VIDEO_PATH).exists():
+        print(f"[SOURCE] Video found → extracting frames from {VIDEO_PATH}")
+        if not extract_frames():
+            print("❌ Frame extraction failed")
+            exit(1)
+        dataset_path = build_dataset()
+    else:
+        print(f"[SOURCE] Video not found ({VIDEO_PATH})")
+        print(f"[SOURCE] Falling back to CVAT export → {CVAT_LABELS}")
+        dataset_path = build_dataset_from_cvat()
 
-    if not extract_frames():
-        print("❌ Frame extraction failed")
+    if dataset_path is None:
+        print("❌ Dataset build failed")
         exit(1)
 
-    dataset_path = build_dataset()
-    yaml_path    = create_yaml(dataset_path)
+    yaml_path = create_yaml(dataset_path)
     train(yaml_path)

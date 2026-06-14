@@ -35,6 +35,9 @@ head-detection/
 ├── train.py                      # Main training script
 ├── requirements.txt
 ├── verify.py                     # Verification script
+├── convert_clahe.py  
+├── merge_dataset.py  
+├── split_cvat.py  
 ├── .gitignore
 └── README.md
 ```

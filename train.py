@@ -245,9 +245,9 @@ def train(yaml_path):
         batch   = BATCH,
         name    = "head_detection_v1",
         project = str(Path(OUTPUT_DIR) / "model"),
-        lr0     = 0.01,
-        warmup_epochs = 10,
-        close_mosaic = 20,
+        lr0     = 0.001,
+        warmup_epochs = 3,
+        close_mosaic = 10,
 
         # Augmentation
         hsv_h   = 0.0,

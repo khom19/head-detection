@@ -12,18 +12,18 @@ from pathlib import Path
 # CONFIG
 # ========================================
 
-VIDEO_PATH   = r"train_vid/full_vid.mp4"
-CVAT_LABELS  = r"data/merge_train_data"    
+VIDEO_PATH   = r"empty"
+CVAT_LABELS  = r"merge_train_data"    
 OUTPUT_DIR   = r"dataset"            
 
 MODEL_SIZE   = "head-detection" 
-EPOCHS       = 100
+EPOCHS       = 1000
 IMGSZ        = 640
 BATCH        = 16      
 VAL_SPLIT    = 0.2          # 20% for validation
 
 # frames that labeled
-LABELED_FRAMES = list(range(0, 3301, 30))  # 0, 30, 60, ... 1020
+LABELED_FRAMES = list(range(0, 6001, 30))  # 0, 30, 60, ... 1020
 
 # ========================================
 # STEP 1: Extract frames from video
@@ -246,8 +246,9 @@ def train(yaml_path):
         name    = "head_detection_v1",
         project = str(Path(OUTPUT_DIR) / "model"),
         lr0     = 0.001,
-        warmup_epochs = 3,
-        close_mosaic = 10,
+        warmup_epochs = 10,
+        close_mosaic = 33,
+        patience = 0,
 
         # Augmentation
         hsv_h   = 0.0,

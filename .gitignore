@@ -2,6 +2,9 @@
 data/*
 train_vid/*
 dataset/*
+*.mp4
+frames*/
+merge_train_data/
 
 # Keep folder structure
 !data/.gitkeep
